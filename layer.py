@@ -70,7 +70,7 @@ class Decoder(nn.Module):
                            dropout=dropout)
         self.dropout = nn.Dropout(dropout)
         self.att_need = config.att_need
-        self.attention = None
+        self.attention = Attention(hidden_size=hidden_size, attn_type="general")
         self.min_len_sentence = min_length
         self.max_len_sentence = max_length
         self.top_k = top_k
@@ -90,8 +90,8 @@ class Decoder(nn.Module):
         else:
             dec_output, dec_hidden = self.rnn(dec_input, dec_hidden)
 
-        # if self.att_need:
-        #     dec_output, p_attn = self.attention(dec_output, enc_out)
+        if self.att_need:
+            dec_output, p_attn = self.attention(dec_output, enc_out)
 
         dec_output = self.dropout(dec_output)
 
@@ -180,7 +180,6 @@ class Decoder(nn.Module):
 
         return utterances
 
-
     def forward(self, encoder_out, encoder_hidden, question):
         batch_size = encoder_out.size(0)
 
@@ -191,7 +190,9 @@ class Decoder(nn.Module):
         # depends on paper describle to concat the hidden state
         encoder_hidden = tuple(
             (torch.cat((hidden[0:hidden.size(0):2], hidden[1:hidden.size(0):2]), dim=2) for hidden in encoder_hidden))
-        # enc_out = encoder_out[:, -1, :].unsqueeze(1) if self.att_need else encoder_out
+
+        enc_out = encoder_out[:, -1, :].unsqueeze(1) if self.att_need else encoder_out
+
         decoder_hidden = encoder_hidden
         if question is not None:
             q_emb = self.embedding(question)
@@ -219,6 +220,54 @@ class Generator(nn.Module):
         out = self.gen_func(self.generator(x)).squeeze(1)
         return out
 
+
 # TO DO
-class attention(object):
-    pass
+class Attention(nn.Module):
+    def __init__(self, hidden_size, attn_type="general"):
+        super(Attention, self).__init__()
+        self.hidden_size = hidden_size
+        self.attn_type = attn_type
+        if self.attn_type == "general":
+            self.linear_in = nn.Linear(hidden_size, hidden_size, bias=False)
+        elif self.attn_type == "mlp":
+            self.linear_context = nn.Linear(hidden_size, hidden_size, bias=False)
+            self.linear_query = nn.Linear(hidden_size, hidden_size, bias=True)
+            self.v = nn.Linear(hidden_size, 1, bias=False)
+        # mlp wants it with bias
+        out_bias = self.attn_type == "mlp"
+        self.linear_out = nn.Linear(hidden_size * 2, hidden_size, bias=out_bias)
+
+    def score(self,h_t, h_s):
+        tgt_batch, tgt_len, tgt_dim = h_t.size()
+        src_batch, src_len, src_dim = h_s.size()
+        if self.attn_type =="general":
+            h_t_ = h_t.view(tgt_batch * tgt_len, tgt_dim)
+            h_t_ = self.linear_in(h_t_)
+            h_t = h_t_.view(tgt_batch, tgt_len, tgt_dim)
+        h_s_ = h_s.transpose(1, 2)
+
+        # (batch, t_len, d) x (batch, d, s_len) --> (batch, t_len, s_len)
+        return torch.einsum("bld, bdk-> blk",h_t,h_s_)
+
+
+    def forward(self, dec_output, enc_output, enc_output_lengths=None):
+        batch, source_len, hidden_size = enc_output.size()
+        batch_, target_l, hidden_size_ = dec_output.size()
+        # caculate the attention weight
+        align = self.score(dec_output, enc_output)
+
+        # Softmax to normalize attention weights
+        align_vectors = F.softmax(align.view(batch * target_l, source_len), -1)
+        align_vectors = align_vectors.view(batch, target_l, source_len)
+
+        c = torch.bmm(align_vectors, enc_output)
+
+        concat_c = torch.cat((c, dec_output), 2).view(batch * target_l, hidden_size * 2)
+        attn_h = self.linear_out(concat_c).view(batch, target_l, hidden_size)
+        attn_h = torch.tanh(attn_h)
+
+        attn_h = attn_h.transpose(0, 1).contiguous()
+        align_vectors = align_vectors.transpose(0, 1).contiguous()
+
+        return attn_h.permute(1, 0, 2), align_vectors
+

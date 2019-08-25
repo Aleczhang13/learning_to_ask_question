@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from torchtext import data
+from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
 import config
 from dataprocessor import DataPreprocessor
@@ -17,11 +18,11 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 prepro_params = {
     "word_embedding_size": config.word_embedding_size,
-    "answer_embedding_size": config.question_embedding_size,
+    "question_embedding_size": config.question_embedding_size,
     "max_len_context": config.max_len_context,
     "max_len_question": config.max_len_question,
 }
@@ -60,7 +61,7 @@ writer = SummaryWriter(experiment_path)
 # preprocess the data
 dp = DataPreprocessor()
 train_dataset, test_dataset, vocabs = dp.load_data(os.path.join(config.out_file, "train_dataset.pt"),
-                                                   os.path.join(config.out_file, "test_dataset.pt"),
+                                                   os.path.join(config.out_file, "dev_dataset.pt"),
                                                    config.glove)
 
 # using the dataloader to feed data
@@ -69,7 +70,7 @@ train_dataloader = data.BucketIterator(train_dataset,
                                        sort_key=lambda x: len(x.src),
                                        sort_within_batch=True,
                                        device=device,
-                                       shuffle=False)
+                                       shuffle=True)
 
 test_dataloader = data.BucketIterator(test_dataset,
                                       batch_size=hyper_params["batch_size"],
@@ -122,8 +123,9 @@ logging.info("Starting training...")
 for epoch in range(hyper_params["num_epochs"]):
     logging.info("##### epoch {:2d}".format(epoch))
     model.train()
+    mc.train()
     scheduler.step()
-    for i, batch in enumerate(train_dataloader):
+    for i, batch in enumerate(tqdm(train_dataloader)):
         sentence, len_sentence, question, len_question = batch.src[0].to(device), batch.src[1].to(device), batch.tgt[0].to(device),batch.tgt[1].to(device)
         optimizer.zero_grad()
 
@@ -150,12 +152,10 @@ for epoch in range(hyper_params["num_epochs"]):
                                  "perplexity": mc.list_train_perplexity[-1],
                                  "epoch": mc.epoch})
 
-
-
     model.eval()
     mc.eval()
     with torch.no_grad():
-        for i, batch in enumerate(test_dataloader):
+        for i, batch in enumerate(tqdm(test_dataloader)):
             # Load a batch of input sentence, sentence lengths and questions
             sentence, len_sentence, question,len_question = batch.src[0].to(device), batch.src[1].to(device), batch.tgt[0].to(device), batch.tgt[1].to(device)
     #         # answer = batch.feat.to(device) if hyper_params["use_answer"] else None

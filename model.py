@@ -20,11 +20,11 @@ class Seq2Seq(nn.Module):
                                      num_layers=num_layers,
                                      device=device,
                                      dropout=drop_out if num_layers > 1 else 0.,
-                                     attention=True
+                                     attention=config.att_need
                                      )
 
 
-    def forward(self, sentence, len_sentence, question, len_question):
+    def forward(self, sentence, len_sentence, question = None, len_question = None):
         enc_output, enc_hidden= self.encoder(sentence, len_sentence)
         outputs = self.decoder(enc_output,enc_hidden, question)
         return outputs

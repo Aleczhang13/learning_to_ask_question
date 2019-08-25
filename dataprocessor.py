@@ -27,9 +27,9 @@ class Squadataset_process(data.Dataset):
         # 设置相应的fields
         fields = [('src', fields[0]), ('tgt', fields[1])]
 
-        with open(src_path) as src_file, open(tgt_path) as tgt_file:
-            src_file = src_file.readlines()[0:10]
-            tgt_file = tgt_file.readlines()[0:10]
+        with open(src_path, encoding="utf-8") as src_file, open(tgt_path, encoding="utf-8") as tgt_file:
+            src_file = src_file.readlines()
+            tgt_file = tgt_file.readlines()
 
             for src_line, tgt_line in tqdm(tuple(zip(src_file, tgt_file))):
                 src_sentence = tokenize_sentence(src_line)
@@ -114,6 +114,17 @@ class DataPreprocessor(object):
 
         return dataset
 
+    def generate_dataset_2(self, src_path, tgt_path, max_len=None):
+        train_data = Squadataset_process(src_path=src_path,
+                                         tgt_path=tgt_path,
+                                         fields=(self.src_field, self.tgt_field),
+                                         max_len=max_len)
+
+
+        dataset = train_data
+
+        return dataset
+
 
     def generate_fields(self):
         src_field = data.Field(tokenize=tokenizer,
@@ -146,5 +157,5 @@ class DataPreprocessor(object):
 
 if __name__ == "__main__":
     pro = DataPreprocessor()
-    pro.preprocess([config.train_src, config.test_src], [config.train_tgt, config.test_tgt],
-                   os.path.join(config.out_file, "train_dataset.pt"), os.path.join(config.out_file, "test_dataset.pt"))
+    pro.preprocess([config.train_src, config.dev_src], [config.train_tgt, config.dev_tgt],
+                   os.path.join(config.out_file, "train_dataset.pt"), os.path.join(config.out_file, "dev_dataset.pt"))

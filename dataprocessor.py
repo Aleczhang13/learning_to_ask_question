@@ -22,6 +22,7 @@ PAD_WORD = '<PAD>'
 # Progress relate dataset
 class Squadataset_process(data.Dataset):
     def __init__(self, src_path, tgt_path, fields, max_len=None):
+
         examples = []
         # 设置相应的fields
         fields = [('src', fields[0]), ('tgt', fields[1])]
@@ -60,6 +61,7 @@ class DataPreprocessor(object):
         # Building field vocabulary
         self.src_field.build_vocab(train_data, max_size=config.in_vocab_size)
         self.tgt_field.build_vocab(test_data, max_size=config.out_vocab_size)
+
 
         src_vocab, tgt_vocab = self.generate_vocabs()
         vocabs = {'src_vocab': src_vocab, 'tgt_vocab': tgt_vocab}

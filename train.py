@@ -6,18 +6,18 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from torchtext import data
-
+from torch.nn.utils import clip_grad_norm_
 import config
 from dataprocessor import DataPreprocessor
 from model import Seq2Seq
-from utils import MetricReporter
+from utils import MetricReporter, dress_for_loss, correct_tokens, save_checkpoint
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 prepro_params = {
     "word_embedding_size": config.word_embedding_size,
@@ -78,9 +78,8 @@ test_dataloader = data.BucketIterator(test_dataset,
                                       device=device,
                                       shuffle=False)
 
-logger.info("Length of training data loader is:", len(train_dataloader))
-
-logger.info("Length of valid data loader is:", len(test_dataloader))
+logger.info("Length of training data loader is:{}".format(len(train_dataloader)))
+logger.info("Length of valid data loader is:{}".format(len(test_dataloader)))
 
 # TO DO
 model = Seq2Seq(src_vocab=vocabs["src_vocab"],
@@ -90,11 +89,11 @@ model = Seq2Seq(src_vocab=vocabs["src_vocab"],
                 device=device,
                 drop_out=hyper_params["drop_prob"])
 
-
+model.to(device)
 # Resume training if checkpoint
 if hyper_params["pretrained"]:
     model.load_state_dict(torch.load(os.path.join(experiment_path, "model.pkl"))["state_dict"])
-model.to(device)
+
 
 # set the loss function and reduce the mask loss
 padding_idx = vocabs['tgt_vocab'].stoi["<PAD>"]
@@ -122,12 +121,83 @@ mc = MetricReporter()
 logging.info("Starting training...")
 for epoch in range(hyper_params["num_epochs"]):
     logging.info("##### epoch {:2d}".format(epoch))
-    # model.train()
-    # scheduler.step()
+    model.train()
+    scheduler.step()
     for i, batch in enumerate(train_dataloader):
         sentence, len_sentence, question, len_question = batch.src[0].to(device), batch.src[1].to(device), batch.tgt[0].to(device),batch.tgt[1].to(device)
         optimizer.zero_grad()
 
-        enc_output, enc_hidden = model(sentence, len_sentence, question, len_question)
+        pred = model(sentence, len_sentence, question, len_question)
+        pred = dress_for_loss(pred)
+        # Calculate Loss: softmax --> negative log likelihood
+        loss = criterion(pred.view(-1, pred.size(2)), question[:, 1:].contiguous().view(-1))
+
+        # Update the metrics
+        num_non_padding, num_correct = correct_tokens(pred, question, padding_idx)
+        mc.update_metrics(loss.item(), num_non_padding, num_correct)
+
+        # Getting gradients w.r.t. parameters
+        loss.backward()
+        # Truncate the gradients if the norm is greater than a threshold
+        clip_grad_norm_(model.parameters(), 5.)
+        # Updating parameters
+        optimizer.step()
+
+    # Compute the loss, accuracy and perplexity for this epoch and push them to TensorboardX
+    mc.report_metrics()
+    writer.add_scalars("train", {"loss": mc.list_train_loss[-1],
+                                 "accuracy": mc.list_train_accuracy[-1],
+                                 "perplexity": mc.list_train_perplexity[-1],
+                                 "epoch": mc.epoch})
+
+
+
+    model.eval()
+    mc.eval()
+    with torch.no_grad():
+        for i, batch in enumerate(test_dataloader):
+            # Load a batch of input sentence, sentence lengths and questions
+            sentence, len_sentence, question,len_question = batch.src[0].to(device), batch.src[1].to(device), batch.tgt[0].to(device), batch.tgt[1].to(device)
+    #         # answer = batch.feat.to(device) if hyper_params["use_answer"] else None
+    #         # Forward pass to get output/logits
+            pred = model(sentence, len_sentence, question,len_question)
+    #         # Stack the predictions into a tensor to compute the loss
+            pred = dress_for_loss(pred)
+    #         # Calculate Loss: softmax --> negative log likelihood
+            loss = criterion(pred.view(-1, pred.size(2)), question[:, 1:].contiguous().view(-1))
+    #
+    #         # Update the metrics
+            num_non_padding, num_correct = correct_tokens(pred, question, padding_idx)
+            mc.update_metrics(loss.item(), num_non_padding, num_correct)
+
+
+    #
+    #     # Compute the loss, accuracy and perplexity for this epoch and push them to TensorboardX
+        mc.report_metrics()
+        writer.add_scalars("valid", {"loss": mc.list_valid_loss[-1],
+                                     "accuracy": mc.list_valid_accuracy[-1],
+                                     "perplexity": mc.list_valid_perplexity[-1],
+                                     "epoch": mc.epoch})
+
+    # Save last model weights
+    save_checkpoint({
+        "epoch": mc.epoch + epoch_checkpoint,
+        "state_dict": model.state_dict(),
+        "best_valid_loss": mc.list_valid_loss[-1],
+    }, True, os.path.join(experiment_path, "model_last_checkpoint.pkl"))
+
+    # Save model weights with best validation error
+    is_best = bool(mc.list_valid_loss[-1] < best_valid_loss)
+    best_valid_loss = min(mc.list_valid_loss[-1], best_valid_loss)
+    save_checkpoint({
+        "epoch": mc.epoch + epoch_checkpoint,
+        "state_dict": model.state_dict(),
+        "best_valid_loss": best_valid_loss
+    }, is_best, os.path.join(experiment_path, "model.pkl"))
+
+# Export scalar data to TXT file for external processing and analysis
+mc.log_metrics(os.path.join(experiment_path, "train_log.txt"))
+
+
 
 

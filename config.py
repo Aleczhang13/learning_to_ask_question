@@ -19,7 +19,7 @@ question_embedding_size = 300
 
 ### model params
 cuda = True
-batch_size = 2
+batch_size = 5
 learning_rate = 1.0
 pretrained = False
 num_epochs = 100
@@ -30,3 +30,10 @@ embedding_drop_prob = 0.2
 embedding_freeze = False
 hidden_size = 600
 num_layers = 2
+min_length = 15
+max_length = 30
+top_k = 0.
+top_p = 0.9
+temperature = 0.7
+decode_type = "topk"
+att_need = False

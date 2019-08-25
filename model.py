@@ -13,9 +13,9 @@ class Seq2Seq(nn.Module):
                                     bidirectional=True,
                                     drop_prob=drop_out if num_layers > 1 else 0.)
 
-        self.decoder = layer.Decoder(input_size=tgt_vocab.vectors.size(1),
+        self.decoder = layer.Decoder(input_size=src_vocab.vectors.size(1)+ hidden_size,
                                      hidden_size=hidden_size,
-                                     word_vector=src_vocab,
+                                     word_vector=src_vocab.vectors,
                                      tgt_vocab=tgt_vocab,
                                      num_layers=num_layers,
                                      device=device,
@@ -24,9 +24,9 @@ class Seq2Seq(nn.Module):
                                      )
 
 
-    def forward(self, sentence, len_sentence, qustion, len_question):
+    def forward(self, sentence, len_sentence, question, len_question):
         enc_output, enc_hidden= self.encoder(sentence, len_sentence)
-        outputs = self.decoder(enc_output,enc_hidden, qustion)
+        outputs = self.decoder(enc_output,enc_hidden, question)
         return outputs
 
 

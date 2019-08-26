@@ -1,4 +1,4 @@
-exp = "exp_2_att"
+exp = "exp_att_5"
 
 
 
@@ -12,8 +12,8 @@ out_file = "/home/zhangchenbin/code2/learning_to_ask_question/Data/"
 glove = "/hdd2/zhangchenbin/data/embedding"
 
 
-max_len_context = 100
-max_len_question = 30
+max_len_context = 120
+max_len_question = 15
 min_len_question = 5
 in_vocab_size = 45000
 out_vocab_size = 28000
@@ -29,8 +29,8 @@ num_epochs = 20
 start_decay_epoch = 8
 decay_rate = 0.5
 drop_prob = 0.3
-embedding_drop_prob = 0.3
-embedding_freeze = False
+embedding_drop_prob = 0
+embedding_freeze = True
 hidden_size = 600
 num_layers = 2
 min_length = 5

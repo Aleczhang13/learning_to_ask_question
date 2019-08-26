@@ -15,7 +15,7 @@ class Seq2Seq(nn.Module):
 
         self.decoder = layer.Decoder(input_size=src_vocab.vectors.size(1)+ hidden_size,
                                      hidden_size=hidden_size,
-                                     word_vector=src_vocab.vectors,
+                                     word_vector=tgt_vocab.vectors,
                                      tgt_vocab=tgt_vocab,
                                      num_layers=num_layers,
                                      device=device,

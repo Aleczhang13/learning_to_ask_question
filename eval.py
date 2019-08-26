@@ -15,7 +15,12 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
+
+#
 
 # Preprocessing values used for training
 prepro_params = {
@@ -92,13 +97,15 @@ with torch.no_grad():
         qustion_orign = question.cpu().numpy().tolist()
         orign = [vocabs["tgt_vocab"].itos[i] for i in qustion_orign[0] if vocabs["tgt_vocab"].itos[i]]
         orign = orign[1:len_question-1]
-        pred = [vocabs["tgt_vocab"].itos[i] for i in pred[0] if vocabs["tgt_vocab"].itos[i]]
-        pred = pred[1:-1]
-        pred_question.append(pred)
+        pred1 = [vocabs["tgt_vocab"].itos[i] for i in pred[0] if vocabs["tgt_vocab"].itos[i]]
+        # pred2 = [vocabs["tgt_vocab"].itos[i] for i in pred[1] if vocabs["tgt_vocab"].itos[i]]
+        # pred3 = [vocabs["tgt_vocab"].itos[i] for i in pred[2] if vocabs["tgt_vocab"].itos[i]]
+        pred1= pred1[1:-1]
+        pred_question.append(pred1)
 
 
-save_path = os.path.join("./save_pred.txt")
-file = open(save_path, 'w')
+save_path = os.path.join(experiment_path ,"save_pred.txt")
+file = open(save_path, 'w', encoding="utf-8")
 
 for example in tqdm(pred_question):
     example = " ".join(example)

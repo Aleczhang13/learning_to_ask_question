@@ -13,7 +13,8 @@ class Embedding(nn.Module):
     def __init__(self, word_vectors, padding_idx, drop_prob):
         super(Embedding, self).__init__()
         self.drop_prob = drop_prob
-        self.embed = nn.Embedding.from_pretrained(word_vectors, padding_idx=padding_idx, freeze=config.embedding_freeze)
+
+        self.embed = nn.Embedding.from_pretrained(word_vectors,padding_idx=padding_idx, freeze=False)
 
     def forward(self, x):
         emb = self.embed(x)
@@ -29,7 +30,7 @@ class Encoder(nn.Module):
                  num_layers,
                  word_vectors,
                  bidirectional,
-                 drop_prob=0.
+                 drop_prob
                  ):
         super(Encoder, self).__init__()
 
@@ -57,13 +58,11 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, input_size, hidden_size, word_vector, num_layers, tgt_vocab, device, dropout, attention=None,
-                 min_length=config.min_length, max_length=config.max_length,
-                 top_k=config.top_k, top_p=config.top_p,
-                 temperature=config.temperature, decode_type=config.decode_type
+                 min_length=config.min_len_context, max_length=config.max_len_context,
                  ):
         super(Decoder, self).__init__()
         self.output_dim = len(tgt_vocab.itos)
-        self.embedding = nn.Embedding.from_pretrained(word_vector, freeze=config.embedding_freeze)
+        self.embedding = nn.Embedding.from_pretrained(word_vector, freeze=True)
         self.rnn = nn.LSTM(input_size, hidden_size, num_layers,
                            batch_first=True,
                            bidirectional=False,
@@ -73,11 +72,7 @@ class Decoder(nn.Module):
         self.attention = Attention(hidden_size=hidden_size, attn_type="general")
         self.min_len_sentence = min_length
         self.max_len_sentence = max_length
-        self.top_k = top_k
-        self.top_p = top_p
         self.gen = Generator(decoder_size=hidden_size, output_dim=len(tgt_vocab.itos))
-        self.temperature = temperature
-        self.decode_type = decode_type
         self.special_tokens_ids = [tgt_vocab.stoi[t] for t in ["<EOS>", "<PAD>"]]
         self.device = device
 

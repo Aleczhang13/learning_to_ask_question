@@ -7,13 +7,13 @@ class Seq2Seq(nn.Module):
         super(Seq2Seq, self).__init__()
 
         self.encoder = layer.Encoder(input_size=src_vocab.vectors.size(1),
-                                    hidden_size=hidden_size,
-                                    num_layers=num_layers,
-                                    word_vectors=src_vocab.vectors,
-                                    bidirectional=True,
-                                    drop_prob=drop_out if num_layers > 1 else 0.)
+                                     hidden_size=hidden_size,
+                                     num_layers=num_layers,
+                                     word_vectors=src_vocab.vectors,
+                                     bidirectional=True,
+                                     drop_prob=drop_out if num_layers > 1 else 0.)
 
-        self.decoder = layer.Decoder(input_size=src_vocab.vectors.size(1)+ hidden_size,
+        self.decoder = layer.Decoder(input_size=src_vocab.vectors.size(1) + hidden_size,
                                      hidden_size=hidden_size,
                                      word_vector=tgt_vocab.vectors,
                                      tgt_vocab=tgt_vocab,

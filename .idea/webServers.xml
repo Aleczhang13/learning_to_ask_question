@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="c84a0810-e404-4f7f-9023-7f32aacf869d" name="13号机" url="http://121.48.165.41">
+        <fileTransfer host="121.48.165.41" port="10013" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="10013" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

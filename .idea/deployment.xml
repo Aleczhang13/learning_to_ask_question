@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="9号机器">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Copy of project-level server '13号机'">
     <serverData>
+      <paths name="13号机">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/zhangchenbin/code/learning_to_ask_question" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="9号机器">
         <serverdata>
           <mappings>
@@ -9,6 +16,14 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="Copy of project-level server '13号机'">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/zhangchenbin/code/learning_to_ask_question" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

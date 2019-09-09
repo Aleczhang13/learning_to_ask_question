@@ -10,8 +10,9 @@
 增加了attention模块
 
 #### 2019年08月26日
-（1）发现关于context的句子长度是非常重要的，这是一个需要重点调控的参数  
-（2）让glove可以进行finetune在dev上测试集可以达到较好的acc，但是生成的句子的BLEU反而降了一个点
+- 发现关于context的句子长度是非常重要的，这是一个需要重点调控的参数  
+- 让glove可以进行finetune在dev上测试集可以达到较好的acc，但是生成的句子的BLEU反而降了一个点
 
 #### 2019年09月09日
-（1）确定了torchtext中max-size没有bug
+- 确定了torchtext中max-size没有bug
+- 修复了unk初始化的问题，将其设置为xavier_uniform_
